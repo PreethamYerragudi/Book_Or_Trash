@@ -24,7 +24,7 @@ hated = []
 
 client = OpenAI(
     # This is the default and can be omitted
-    api_key = "###"
+    api_key = "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"
 )
 
 def makeSummary(title):
@@ -58,8 +58,6 @@ def add_book(title, liked):
     else:
         hated.append(title + ", ")
 
-loved = ["The Hobbit,", "The Magician's Nephew,", "Peter And Wendy,", "RedWall,", "Eragorn,", "A Game Of Thrones,", "Jade City,", "The StarDust Theif,", "The Buried Giant,", "Howl's Moving Castle,"]
-hated = ["The Jungle,","Silent Spring,","Follies,","Hidden Figures,"," Into The Wind,","Black Like Me,","In Cold Blood,","A Walk In The Woods,","In The Time Of Butterflies,","Into Thin Air,"]
 
 
 def get_title_author(id_num):
@@ -166,7 +164,7 @@ def update_counter(request):
 
 def final_book(request):
     recco = finalReccomendation(loved, hated)
-    return render(request, render, {"rec":recco})
+    return render(request, 'final-book.html', {"rec":recco})
 
 
 
