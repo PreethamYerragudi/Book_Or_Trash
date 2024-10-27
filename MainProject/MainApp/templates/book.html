@@ -63,24 +63,27 @@
     }
 
     .book-section {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      padding: 30px;
-      width: 100%;
-      max-width: 500px;
-      box-sizing: border-box;
-      margin-top: 20px;
+      max-width: 100%; /* Ensure the section doesn't overflow */
+      overflow: hidden;
     }
-
+    
     .book-card {
-      background: #fff;
-      border: 2px solid #8c6749;
-      border-radius: 12px;
-      box-shadow: 0 8px 12px rgba(0, 0, 0, 0.15);
-      padding: 20px;
-      text-align: center;
-      width: 100%;
+
+      width: 50%; /* Make the card wider */
+      height: 450px; /* Set a shorter height */
+      overflow-y: auto; /* Allow vertical scroll within the card if needed */
+      padding: 15px;
+      box-sizing: border-box;
+      background-color: #f5f5f5;
+      border-radius: 8px;
+      margin: 0 auto;
+      white-space: normal;
+    }
+    
+    .book-description {
+      text-overflow: ellipsis;
+      white-space: normal; /* Allow wrapping of text */
+      overflow: hidden; /* Hide overflow content */
     }
 
     .book-card h3 {
@@ -92,8 +95,10 @@
     .book-card img {
       width: 100%;
       border-radius: 10px;
-      max-width: 250px;
+      width: 125px;
+      height: 200px;
       box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      pointer-events: none; /* Disable mouse events on the element */
     }
 
     .trash-can {
@@ -178,6 +183,8 @@
     .close-button:hover {
       background-color: #a83f32;
     }
+
+    
   </style>
 </head>
 
@@ -187,25 +194,20 @@
     <h1><i>Book or Trash</i></h1>
     <p>Your place to decide if a book is a must-read or not!</p>
   </header>
-
+  <div id="loading" style="display: none;">Loading...</div>
   <section class="book-section">
     <div class="book-card">
-      <img src="https://images.gr-assets.com/books/1447303603m/2767052.jpg" alt="Book Cover">
-      <h3>The Great Book Adventure Of Rudolph</h3>
-      <p>Author: Jane Doe</p>
-      <p><i>"The Catcher in the Rye" follows the story of Holden Caulfield, a disillusioned teenager who has been
-          expelled from multiple prep schools. As he wanders through New York City, Holden grapples with feelings of
-          alienation, loss, and confusion about adulthood. Throughout the novel, Holden\'s cynical outlook on life and
-          search for authenticity lead him to confront his own inner turmoil and ultimately find a sense of hope and
-          connection with others. With its themes of adolescence, identity, and societal expectations, "The Catcher in
-          the Rye" remains a classic coming-of-age novel that continues to resonate with readers of all ages.</i></p>
+      <img id="swipeObject" src="{{ image }}" alt="Book Cover">
+      <h3>{{ title }}</h3>
+      <p>Author: {{ author }}</p>
+      <p class="book-description"><i>{{summary}}</i></p>
     </div>
   </section>
 
-  <img src="trash.png" alt="Trash Can" class="trash-can">
-  <img src="bookshelf.png" alt="Bookshelf" class="bookshelf">
+  <img src="../static/images/trash.png" alt="Trash Can" class="trash-can">
+  <img src="../static/images/bookshelf.png" alt="Bookshelf" class="bookshelf">
 
-  <img class="logo" src="bookortrash.png" alt="">
+  <img class="logo" src="../static/images/bookortrash.png" alt="">
   <button class="info-button" onclick="togglePopup()">Info</button>
 
   <div class="popup" id="infoPopup">
@@ -223,6 +225,149 @@
       const popup = document.getElementById('infoPopup');
       popup.style.display = popup.style.display === 'none' || popup.style.display === '' ? 'block' : 'none';
     }
+    const swipeObject = document.getElementById('swipeObject');
+        const loadingScreen = document.getElementById('loading');
+        let isMouseDown = false;
+        let velocityY = 0; // Vertical velocity
+        let velocityX = 0; // Horizontal velocity
+        const gravity = 0.5; // Gravity force
+        const friction = 0.95; // Friction to slow down the horizontal movement
+        let hasMoved = false; // Track if the object has been moved
+        let lastMousePosition = { x: 0, y: 0 }; // Store last mouse position
+        let mouseSpeed = { x: 0, y: 0 }; // Store mouse speed
+
+        function sendLandingSide(isLeftSide, id) {
+            loadingScreen.style.display = 'flex';
+            fetch('/update-counter/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'X-CSRFToken': getCookie('csrftoken'), // Include CSRF token if CSRF is enabled
+                },
+                body: `isLeftSide=${isLeftSide}&id=${id}`
+            }).then(response => response.json())
+              .then(data => {
+                  console.log('Server response:', data);
+                  // Reload the page or update the content here
+                  location.reload(); // Reloads the page to display new book info
+              })
+              .catch(error => console.error('Error:', error))
+              .finally(() => {
+                    location.reload()
+                  loadingScreen.style.display = 'none'; // Hide loading screen after the request completes
+              });
+        }
+
+    
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        // Center the swipeObject initially
+        function centerSwipeObject() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            swipeObject.style.left = (windowWidth / 2 - swipeObject.offsetWidth / 2) + 'px';
+            swipeObject.style.top = (windowHeight / 2 - swipeObject.offsetHeight / 2) + 'px';
+        }
+
+        // Call the function to center the swipeObject after the window has loaded
+        window.onload = function() {
+            centerSwipeObject();
+            loadingScreen.style.display = 'none'; // Hide loading screen when the page loads
+        };
+
+        // Event listener for mouse down
+        document.addEventListener('mousedown', (event) => {
+            swipeObject.style.position = "absolute";
+            isMouseDown = true; // Set the flag to true
+            lastMousePosition = { x: event.pageX, y: event.pageY }; // Initialize last position
+        });
+
+        // Event listener for mouse up
+        document.addEventListener('mouseup', (event) => {
+            isMouseDown = false; // Set the flag to false
+            if (hasMoved) { // Only start falling if the object has been moved
+                velocityY = mouseSpeed.y; // Use the calculated vertical mouse speed
+                velocityX = mouseSpeed.x; // Use the calculated horizontal mouse speed
+            }
+        });
+
+        // Event listener for mouse move
+        document.addEventListener('mousemove', (event) => {
+            if (isMouseDown) { // Move only if the mouse is down
+                swipeObject.style.left = (event.pageX - swipeObject.offsetWidth / 2) + 'px';
+                swipeObject.style.top = (event.pageY - swipeObject.offsetHeight / 2) + 'px'; // Update top position
+                hasMoved = true; // Mark that the object has been moved
+
+                // Calculate mouse speed
+                mouseSpeed.x = event.pageX - lastMousePosition.x;
+                mouseSpeed.y = event.pageY - lastMousePosition.y;
+                lastMousePosition = { x: event.pageX, y: event.pageY }; // Update last mouse position
+            }
+        });
+
+        // Animation loop to handle falling
+        function updatePosition() {
+            const currentTop = parseFloat(swipeObject.style.top);
+            const currentLeft = parseFloat(swipeObject.style.left);
+            
+            // Update position based on velocities
+            swipeObject.style.top = (currentTop + velocityY) + 'px'; // Update vertical position
+            swipeObject.style.left = (currentLeft + velocityX) + 'px'; // Update horizontal position
+
+            if (!isMouseDown && hasMoved) {
+                // Apply gravity if the mouse is not down and the object has been moved
+                velocityY += gravity; // Increase vertical velocity by gravity
+                
+                // Apply friction to slow down horizontal movement
+                velocityX *= friction; // Apply friction to horizontal velocity
+                
+                // Stop horizontal movement if it is too small
+                if (Math.abs(velocityX) < 0.1) {
+                    velocityX = 0; // Reset horizontal velocity when it's negligible
+                }
+            }
+
+            // Prevent swipeObject from going below the viewport
+            if (currentTop > window.innerHeight - swipeObject.offsetHeight) {
+                swipeObject.style.top = (window.innerHeight - swipeObject.offsetHeight) + 'px';
+                velocityY = 0; // Reset vertical velocity if it hits the bottom
+                velocityX = 0;
+                // Check which side the object landed on
+                const isLeftSide = parseFloat(swipeObject.style.left) < (window.innerWidth - swipeObject.offsetWidth) / 2;
+                
+                // Send POST request based on the side
+                const id = {{id}};
+                console.log(id);
+                sendLandingSide(isLeftSide, id);
+            }
+
+            // Prevent swipeObject from going beyond the left and right bounds
+            if (currentLeft < 0) {
+                swipeObject.style.left = '0px';
+                velocityX = 0; // Reset horizontal velocity if it hits the left boundary
+            } else if (currentLeft > window.innerWidth - swipeObject.offsetWidth) {
+                swipeObject.style.left = (window.innerWidth - swipeObject.offsetWidth) + 'px';
+                velocityX = 0; // Reset horizontal velocity if it hits the right boundary
+            }
+
+            requestAnimationFrame(updatePosition); // Call the update function again
+        }
+
+        // Start the animation loop
+        updatePosition();
   </script>
 </body>
 

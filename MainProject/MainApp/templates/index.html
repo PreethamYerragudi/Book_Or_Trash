@@ -11,6 +11,23 @@
             overflow: hidden; /* Prevent scrollbars */
             position: relative;
         }
+
+        /* Loading screen styles */
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 9999; /* Ensure it's on top */
+        }
+
         #swipeObject {
             width: 200px;
             height: 300px;
@@ -20,10 +37,13 @@
     </style>
 </head>
 <body>
-    <img id="swipeObject", src = "{{image}}"></img>
+    <div id="loading" style="display: none;">Loading...</div> <!-- Initially hidden -->
+    <img id="swipeObject" src="{{ image }}" alt="Swipe Object">
+    <h1>{{ title }}</h1>
 
     <script>
         const swipeObject = document.getElementById('swipeObject');
+        const loadingScreen = document.getElementById('loading');
         let isMouseDown = false;
         let velocityY = 0; // Vertical velocity
         let velocityX = 0; // Horizontal velocity
@@ -32,6 +52,53 @@
         let hasMoved = false; // Track if the object has been moved
         let lastMousePosition = { x: 0, y: 0 }; // Store last mouse position
         let mouseSpeed = { x: 0, y: 0 }; // Store mouse speed
+        let ran = false;
+
+        let isCounterUpdated = false; // Variable to track if the counter has been updated
+
+function sendLandingSide(isLeftSide, id) {
+    // Only proceed if `isCounterUpdated` is false
+    if (!isCounterUpdated) {
+        isCounterUpdated = true; // Set the flag to true to prevent further execution
+        loadingScreen.style.display = 'flex';
+
+        fetch('/update-counter/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': getCookie('csrftoken'), // Include CSRF token if CSRF is enabled
+            },
+            body: `isLeftSide=${isLeftSide}&title=${id}`
+        }).then(response => response.json())
+          .then(data => {
+              console.log('Server response:', data);
+              // Reload the page or update the content here
+              location.reload(); // Reloads the page to display new book info
+          })
+          .catch(error => console.error('Error:', error))
+          .finally(() => {
+            isCounterUpdated = false;
+              location.reload(); // Reload the page after the request completes
+              loadingScreen.style.display = 'none'; // Hide loading screen after the request completes
+          });
+    }
+}
+
+    
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
 
         // Center the swipeObject initially
         function centerSwipeObject() {
@@ -42,7 +109,10 @@
         }
 
         // Call the function to center the swipeObject after the window has loaded
-        window.onload = centerSwipeObject;
+        window.onload = function() {
+            centerSwipeObject();
+            loadingScreen.style.display = 'none'; // Hide loading screen when the page loads
+        };
 
         // Event listener for mouse down
         document.addEventListener('mousedown', (event) => {
@@ -95,48 +165,23 @@
                 }
             }
 
-            function sendLandingSide(isLeftSide) {
-    fetch('/update-counter/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': getCookie('csrftoken'), // Include CSRF token if CSRF is enabled
-        },
-        body: `isLeftSide=${isLeftSide}`
-    }).then(response => response.json())
-      .then(data => console.log('Server response:', data))
-      .catch(error => console.error('Error:', error));
-};
-
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-
             // Prevent swipeObject from going below the viewport
             if (currentTop > window.innerHeight - swipeObject.offsetHeight) {
                 swipeObject.style.top = (window.innerHeight - swipeObject.offsetHeight) + 'px';
                 velocityY = 0; // Reset vertical velocity if it hits the bottom
-                if(parseFloat(swipeObject.style.left) < (window.innerWidth-swipeObject.offsetWidth)/2){
+                velocityX = 0;
+                if(parseFloat(swipeObject.style.left) < (window.innerWidth)/2){
                     document.body.style.backgroundColor = "green";
-                    sendLandingSide(true);
                 }else{
-                    //console.log(swipeObject.style.left<(window.innerWidth-swipeObject.offsetWidth)/2)
                     document.body.style.backgroundColor = "red";
-                    sendLandingSide(false);
                 };
-                location.reload()
+                // Check which side the object landed on
+                const isLeftSide = parseFloat(swipeObject.style.left) < (window.innerWidth - swipeObject.offsetWidth) / 2;
+                
+                // Send POST request based on the side
+                if(!ran){
+                    sendLandingSide(isLeftSide, {{title}});
+                }
             }
 
             // Prevent swipeObject from going beyond the left and right bounds
