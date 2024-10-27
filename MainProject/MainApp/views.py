@@ -1,11 +1,15 @@
 from django.shortcuts import render
+<<<<<<< HEAD
 import joblib
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+=======
+>>>>>>> d925a8d8468182f9250b75b3f9e4e586341b6bef
 
 # Create your views here.
 def mainPage(request):
     return render(request, 'index.html')
+<<<<<<< HEAD
 
 
 # Load the data
@@ -69,3 +73,5 @@ def update_ratings_dict(book_id, rating):
 
 def get_book_info(request):
     return render(request, "book.html", get_next_book())
+=======
+>>>>>>> d925a8d8468182f9250b75b3f9e4e586341b6bef
