@@ -24,7 +24,7 @@ hated = []
 
 client = OpenAI(
     # This is the default and can be omitted
-    api_key = "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"
+    api_key = "###"
 )
 
 def makeSummary(title):
