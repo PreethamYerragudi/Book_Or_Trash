@@ -23,6 +23,7 @@ body, html {
 .swipe-object {
     width: 150px;
     height: 150px;
+    
     background-color: #3498db;
     color: white;
     display: flex;
