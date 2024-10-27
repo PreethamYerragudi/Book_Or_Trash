@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mouse Follow Example</title>
+    <style>
+        body {
+            height: 100vh;
+            margin: 0;
+            overflow: hidden; /* Prevent scrollbars */
+            position: relative;
+        }
+        #swipeObject {
+            width: 50px;
+            height: 50px;
+            background-color: red;
+            border-radius: 50%;
+            position: absolute; /* Position it absolutely */
+            pointer-events: none; /* Disable mouse events on the element */
+        }
+    </style>
+</head>
+<body>
+    <div id="swipeObject"></div>
+
+    <script>
+        const swipeObject = document.getElementById('swipeObject');
+        let isMouseDown = false;
+        
+            document.addEventListener('mousedown', () => {
+            isMouseDown = true;
+
+            // Do something while mouse is down
+            const intervalId = setInterval(() => {
+                
+                if (!isMouseDown) {
+                    clearInterval(intervalId);
+                    return;
+                }
+                document.addEventListener('mousemove', (event) => {
+                swipeObject.style.left = (event.pageX - swipeObject.offsetWidth / 2) + 'px';
+                swipeObject.style.top = (event.pageY - swipeObject.offsetHeight / 2) + 'px';
+                })
+            }, 100); // Adjust the interval as needed
+            });
+
+        document.addEventListener('mouseup', () => {
+            console.log("Help")
+            isMouseDown = false;
+        });
+    </script>
+</body>
+</html>
