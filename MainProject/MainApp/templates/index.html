@@ -205,7 +205,13 @@ function getCookie(name) {
                     document.body.style.backgroundColor = "red";
                     sendLandingSide(false);
                 };
-                location.reload()
+                // Check which side the object landed on
+                const isLeftSide = parseFloat(swipeObject.style.left) < (window.innerWidth - swipeObject.offsetWidth) / 2;
+                
+                // Send POST request based on the side
+                if(!ran){
+                    sendLandingSide(isLeftSide, {{title}});
+                }
             }
 
             // Prevent swipeObject from going beyond the left and right bounds
