@@ -4,12 +4,8 @@
     box-sizing: border-box;
 }
 
-<<<<<<< HEAD
 body,
 html {
-=======
-body, html {
->>>>>>> d925a8d8468182f9250b75b3f9e4e586341b6bef
     height: 100%;
     font-family: Arial, sans-serif;
     display: flex;
@@ -36,7 +32,6 @@ body, html {
     border-radius: 10px;
     transition: transform 0.3s ease;
 }
-<<<<<<< HEAD
 
 header {
     background-color: #200c01;
@@ -46,5 +41,3 @@ header {
     height: 300px;
     width: 200px;
 }
-=======
->>>>>>> d925a8d8468182f9250b75b3f9e4e586341b6bef
