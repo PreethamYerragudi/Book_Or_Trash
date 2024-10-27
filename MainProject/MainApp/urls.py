@@ -20,5 +20,6 @@ from . import views
 
 urlpatterns = [
     path('',views.mainPage),
+    path('rec/',views.final_book),
     path('update-counter/',views.update_counter),
 ]
