@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mouse Follow Example</title>
+    <title>Mouse Follow Example with Velocity</title>
     <style>
         body {
             height: 100vh;
@@ -12,43 +12,147 @@
             position: relative;
         }
         #swipeObject {
-            width: 50px;
-            height: 50px;
-            background-color: red;
-            border-radius: 50%;
+            width: 200px;
+            height: 300px;
             position: absolute; /* Position it absolutely */
             pointer-events: none; /* Disable mouse events on the element */
         }
     </style>
 </head>
 <body>
-    <div id="swipeObject"></div>
+    <img id="swipeObject", src = "{{image}}"></img>
 
     <script>
         const swipeObject = document.getElementById('swipeObject');
         let isMouseDown = false;
-        
-            document.addEventListener('mousedown', () => {
-            isMouseDown = true;
+        let velocityY = 0; // Vertical velocity
+        let velocityX = 0; // Horizontal velocity
+        const gravity = 0.5; // Gravity force
+        const friction = 0.95; // Friction to slow down the horizontal movement
+        let hasMoved = false; // Track if the object has been moved
+        let lastMousePosition = { x: 0, y: 0 }; // Store last mouse position
+        let mouseSpeed = { x: 0, y: 0 }; // Store mouse speed
 
-            // Do something while mouse is down
-            const intervalId = setInterval(() => {
-                
-                if (!isMouseDown) {
-                    clearInterval(intervalId);
-                    return;
-                }
-                document.addEventListener('mousemove', (event) => {
-                swipeObject.style.left = (event.pageX - swipeObject.offsetWidth / 2) + 'px';
-                swipeObject.style.top = (event.pageY - swipeObject.offsetHeight / 2) + 'px';
-                })
-            }, 100); // Adjust the interval as needed
-            });
+        // Center the swipeObject initially
+        function centerSwipeObject() {
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
+            swipeObject.style.left = (windowWidth / 2 - swipeObject.offsetWidth / 2) + 'px';
+            swipeObject.style.top = (windowHeight / 2 - swipeObject.offsetHeight / 2) + 'px';
+        }
 
-        document.addEventListener('mouseup', () => {
-            console.log("Help")
-            isMouseDown = false;
+        // Call the function to center the swipeObject after the window has loaded
+        window.onload = centerSwipeObject;
+
+        // Event listener for mouse down
+        document.addEventListener('mousedown', (event) => {
+            isMouseDown = true; // Set the flag to true
+            lastMousePosition = { x: event.pageX, y: event.pageY }; // Initialize last position
         });
+
+        // Event listener for mouse up
+        document.addEventListener('mouseup', (event) => {
+            isMouseDown = false; // Set the flag to false
+            if (hasMoved) { // Only start falling if the object has been moved
+                velocityY = mouseSpeed.y; // Use the calculated vertical mouse speed
+                velocityX = mouseSpeed.x; // Use the calculated horizontal mouse speed
+            }
+        });
+
+        // Event listener for mouse move
+        document.addEventListener('mousemove', (event) => {
+            if (isMouseDown) { // Move only if the mouse is down
+                swipeObject.style.left = (event.pageX - swipeObject.offsetWidth / 2) + 'px';
+                swipeObject.style.top = (event.pageY - swipeObject.offsetHeight / 2) + 'px'; // Update top position
+                hasMoved = true; // Mark that the object has been moved
+
+                // Calculate mouse speed
+                mouseSpeed.x = event.pageX - lastMousePosition.x;
+                mouseSpeed.y = event.pageY - lastMousePosition.y;
+                lastMousePosition = { x: event.pageX, y: event.pageY }; // Update last mouse position
+            }
+        });
+
+        // Animation loop to handle falling
+        function updatePosition() {
+            const currentTop = parseFloat(swipeObject.style.top);
+            const currentLeft = parseFloat(swipeObject.style.left);
+            
+            // Update position based on velocities
+            swipeObject.style.top = (currentTop + velocityY) + 'px'; // Update vertical position
+            swipeObject.style.left = (currentLeft + velocityX) + 'px'; // Update horizontal position
+
+            if (!isMouseDown && hasMoved) {
+                // Apply gravity if the mouse is not down and the object has been moved
+                velocityY += gravity; // Increase vertical velocity by gravity
+                
+                // Apply friction to slow down horizontal movement
+                velocityX *= friction; // Apply friction to horizontal velocity
+                
+                // Stop horizontal movement if it is too small
+                if (Math.abs(velocityX) < 0.1) {
+                    velocityX = 0; // Reset horizontal velocity when it's negligible
+                }
+            }
+
+            function sendLandingSide(isLeftSide) {
+    fetch('/update-counter/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken'), // Include CSRF token if CSRF is enabled
+        },
+        body: `isLeftSide=${isLeftSide}`
+    }).then(response => response.json())
+      .then(data => console.log('Server response:', data))
+      .catch(error => console.error('Error:', error));
+};
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
+            // Prevent swipeObject from going below the viewport
+            if (currentTop > window.innerHeight - swipeObject.offsetHeight) {
+                swipeObject.style.top = (window.innerHeight - swipeObject.offsetHeight) + 'px';
+                velocityY = 0; // Reset vertical velocity if it hits the bottom
+                if(parseFloat(swipeObject.style.left) < (window.innerWidth-swipeObject.offsetWidth)/2){
+                    document.body.style.backgroundColor = "green";
+                    sendLandingSide(true);
+                }else{
+                    //console.log(swipeObject.style.left<(window.innerWidth-swipeObject.offsetWidth)/2)
+                    document.body.style.backgroundColor = "red";
+                    sendLandingSide(false);
+                };
+                location.reload()
+            }
+
+            // Prevent swipeObject from going beyond the left and right bounds
+            if (currentLeft < 0) {
+                swipeObject.style.left = '0px';
+                velocityX = 0; // Reset horizontal velocity if it hits the left boundary
+            } else if (currentLeft > window.innerWidth - swipeObject.offsetWidth) {
+                swipeObject.style.left = (window.innerWidth - swipeObject.offsetWidth) + 'px';
+                velocityX = 0; // Reset horizontal velocity if it hits the right boundary
+            }
+
+            requestAnimationFrame(updatePosition); // Call the update function again
+        }
+
+        // Start the animation loop
+        updatePosition();
     </script>
 </body>
 </html>
