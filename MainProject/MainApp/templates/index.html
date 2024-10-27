@@ -95,16 +95,48 @@
                 }
             }
 
+            function sendLandingSide(isLeftSide) {
+    fetch('/update-counter/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': getCookie('csrftoken'), // Include CSRF token if CSRF is enabled
+        },
+        body: `isLeftSide=${isLeftSide}`
+    }).then(response => response.json())
+      .then(data => console.log('Server response:', data))
+      .catch(error => console.error('Error:', error));
+};
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+
             // Prevent swipeObject from going below the viewport
             if (currentTop > window.innerHeight - swipeObject.offsetHeight) {
                 swipeObject.style.top = (window.innerHeight - swipeObject.offsetHeight) + 'px';
                 velocityY = 0; // Reset vertical velocity if it hits the bottom
-                if(parseFloat(swipeObject.style.left) < (window.innerWidth)/2){
+                if(parseFloat(swipeObject.style.left) < (window.innerWidth-swipeObject.offsetWidth)/2){
                     document.body.style.backgroundColor = "green";
+                    sendLandingSide(true);
                 }else{
                     //console.log(swipeObject.style.left<(window.innerWidth-swipeObject.offsetWidth)/2)
                     document.body.style.backgroundColor = "red";
+                    sendLandingSide(false);
                 };
+                location.reload()
             }
 
             // Prevent swipeObject from going beyond the left and right bounds
